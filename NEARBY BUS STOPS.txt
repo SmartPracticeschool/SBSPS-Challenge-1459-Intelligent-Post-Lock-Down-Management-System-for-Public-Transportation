@@ -1,0 +1,246 @@
+<html>
+<style>
+    /* Always set the map height explicitly to define the size of the div
+ * element that contains the map. */
+#map {
+  height: 100%;
+}
+/* Optional: Makes the sample page fill the window. */
+html, body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+#right-panel {
+  font-family: Arial, Helvetica, sans-serif;
+  position: absolute;
+  right: 5px;
+  top: 70%;
+  margin-top: -195px;
+  height: 320px;
+  width: 180px;
+  padding: 5px;
+  z-index: 5;
+  border: 1px solid #999;
+  background: #fff;
+  color:black;
+}
+
+#right-panel select, #right-panel input {
+  font-size: 15px;
+}
+
+#right-panel select {
+  width: 100%;
+}
+
+#right-panel i {
+  font-size: 12px;
+}
+#right-panel {
+  font-family: Arial, Helvetica, sans-serif;
+  position: absolute;
+  right: 5px;
+  top: 60%;
+  margin-top: -195px;
+  height: 330px;
+  width: 200px;
+  padding: 5px;
+  z-index: 5;
+  border: 1px solid #999;
+  background: #fff;
+}
+h2 {
+  font-size: 22px;
+  margin: 0 0 5px 0;
+}
+ul {
+  list-style-type: none;
+  padding: 0;
+  margin: 0;
+  height: 271px;
+  width: 200px;
+  overflow-y: scroll;
+}
+li {
+  background-color: #f1f1f1;
+  padding: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+}
+li:nth-child(odd) {
+  background-color: #fcfcfc;
+}
+#more {
+  width: 100%;
+  margin: 5px 0 0 0;
+}
+</style>
+<script>
+    var lati;
+var lon;
+var map;
+var x = document.getElementById("demo");
+
+function getLocation() {
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(showPosition);
+  } else { 
+    x.innerHTML = "Geolocation is not supported by this browser.";
+  }
+}
+  
+
+function showPosition(position) {
+   lati= position.coords.latitude; 
+   lon= position.coords.longitude;
+   initMap();
+}
+
+function initMap() {
+  // Create the map.
+  var x = lati;
+  var y=lon;
+  var pyrmont = {lat: x, lng: y};
+  map = new google.maps.Map(document.getElementById('map'), {
+    center: pyrmont,
+    zoom: 17
+  });
+
+  // Create the places service.
+  var service = new google.maps.places.PlacesService(map);
+  var getNextPage = null;
+  var moreButton = document.getElementById('more');
+  moreButton.onclick = function() {
+    moreButton.disabled = true;
+    if (getNextPage) getNextPage();
+  };
+
+  // Perform a nearby search.
+  service.nearbySearch(
+      {location: pyrmont, radius: 3000, type: ['transit_station']},
+      function(results, status, pagination) {
+        if (status !== 'OK') return;
+
+        createMarkers(results);
+        moreButton.disabled = !pagination.hasNextPage;
+        getNextPage = pagination.hasNextPage && function() {
+          pagination.nextPage();
+        };
+      });
+init();}
+
+function createMarkers(places) {
+  var bounds = new google.maps.LatLngBounds();
+  var placesList = document.getElementById('places');
+
+  for (var i = 0, place; place = places[i]; i++) {
+    var image = {
+      url: "http://visit-vallarta.com/wp-content/uploads/2014/03/Bus-Stop-Sign.png",
+      size: new google.maps.Size(71, 71),
+      origin: new google.maps.Point(0, 0),
+      anchor: new google.maps.Point(17, 34),
+      scaledSize: new google.maps.Size(25, 25)
+    };
+
+    var marker = new google.maps.Marker({
+        
+      map: map,
+      icon:image,
+      title: place.name,
+      position: place.geometry.location
+    });
+
+    var li = document.createElement('li');
+    li.textContent = place.name;
+    placesList.appendChild(li);
+
+    bounds.extend(place.geometry.location);
+  }
+  map.fitBounds(bounds);
+}
+
+
+</script>
+<body>
+
+<p><font color='#0ECFD5'>Click the button to get nearby Bus stops.</font></p>
+
+<button onclick="getLocation()">click here</button>
+
+<p id="demo"></p>
+
+<div id="map"></div>
+<div id="right-panel">
+  <h2><font color='#DD0E42'>Results</font></h2>
+  <ul id="places"></ul>
+  <button id="more">More results</button>
+</div>
+<!-- Replace the value of the key parameter with your own API key. -->
+<script src="https://maps.googleapis.com/maps/api/js?key=*****************************************&libraries=places&callback=initMap" async defer></script>
+<script>
+ 
+const createMap = ({ lat, lng }) => {
+  return new google.maps.Map(document.getElementById('map'), {
+    center: { lat, lng },
+    zoom: 10
+  });
+};
+const createMarker = ({ map, position }) => {
+  return new google.maps.Marker({ map, position });
+};
+
+/**
+ * Track the user location.
+ * @param {Object} onSuccess
+ * @param {Object} [onError]
+ * @return {number}
+ */
+const trackLocation = ({ onSuccess, onError = () => { } }) => {
+  if ('geolocation' in navigator === false) {
+    return onError(new Error('Geolocation is not supported by your browser.'));
+  }
+
+  return navigator.geolocation.watchPosition(onSuccess, onError, {
+    enableHighAccuracy: true,
+    timeout: 5000,
+    maximumAge: 0
+  });
+};
+const getPositionErrorMessage = code => {
+  switch (code) {
+    case 1:
+      return 'Permission denied.';
+    case 2:
+      return 'Position unavailable.';
+    case 3:
+      return 'Timeout reached.';
+  }
+}
+
+/**
+ * Initialize the application.
+ * Automatically called by the google maps API once it's loaded.
+*/
+function init() {
+  const initialPosition = { lat: 59.32, lng: 17.84 };
+//   const map = createMap(initialPosition);
+  const marker = createMarker({ map, position: initialPosition });
+  const $info = document.getElementById('info');
+  let watchId = trackLocation({
+    onSuccess: ({ coords: { latitude: lat, longitude: lng } }) => {
+      marker.setPosition({ lat, lng });
+      map.panTo({ lat, lng });
+      $info.textContent = `Lat: ${lat.toFixed(5)} Lng: ${lng.toFixed(5)}`;
+      $info.classList.remove('error');
+    },
+    onError: err => {
+      console.log($info);
+      $info.textContent = `Error: ${err.message || getPositionErrorMessage(err.code)}`;
+      $info.classList.add('error');
+    }
+  });}
+</script>
+</body>
+</html>
